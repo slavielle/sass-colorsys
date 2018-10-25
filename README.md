@@ -22,8 +22,8 @@ $color-set: (
   ),
   ...
 );
-
-### ake
+```
+### Make
 ```sass
 @include make-color-styles($color-set);
 
