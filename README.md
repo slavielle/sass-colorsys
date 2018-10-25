@@ -5,7 +5,7 @@
 ### Import
 
 ```sass
-@import "~some-sass-mixins/mixins"
+@import "~sass-colorsys/sass-colorsys"
 ```
 
 ### Define your color set
