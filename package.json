@@ -1,0 +1,16 @@
+{
+  "name": "sass-colorsys",
+  "version": "0.0.1",
+  "description": "sass color system",
+  "main": "sass-colorsys.scss",
+  "author": "Sylvain Lavielle <sylvain.lavielle@netelios.fr>",
+  "repository": {
+    "type": "git",
+    "url": "github.com:slavielle/sass-colorsys.git"
+  },
+  "bugs": {
+    "url": "https://github.com/slavielle/sass-colorsys/issues"
+  },
+  "homepage": "https://github.com/slavielle/sass-colorsys#readme",
+  "license": "MIT"
+}
