@@ -1,87 +1,121 @@
-@mixin make-color-variants-styles(
-  $color-name,
-  $color,
-  $css-properties-variants,
-  $css-states-variants,
-  $options
-) {
-  @each $css-property in $css-properties-variants {
-    $key: nth($css-property, 1);
-    $value-property: nth($css-property, 2);
-    @if $options == null or map_get($options, normal) == 1 {
-      .color-#{$color-name}-#{$key} {
-        #{$value-property}: $color !important;
-      }
-      @each $css-state in $css-states-variants {
-        $key-state: nth($css-state, 1);
-        $value-state: nth($css-state, 2);
-        .color-#{$color-name}-#{$key}-#{$key-state}:#{$value-state} {
-          #{$value-property}: $color !important;
+@mixin make-color-styles($color-definitions, $properties-override: null, $states-override: null) {
+  .color {
+
+    $properties: (cl: color, bg: background, bdc: border-color, fl: fill);
+    $state: (ho: hover);
+
+    @function map-get-key($lookup-map, $lookup-key){
+      @each $item in $lookup-map {
+        $key: nth($item, 1);
+        $value: nth($item, 2);
+        @if ($key == $lookup-key){
+          @return $value;
         }
       }
     }
-    @if $options != null and map_get($options, use) == 1 {
-      .use-color-#{$color-name}-#{$key} {
-        &.color-#{$key}, & .color-#{$key} {
-          #{$value-property}: $color !important;
-        }
 
-        @if ($css-states-variants) {
-          @each $css_state in $css-states-variants {
-            $key_state: nth($css_state, 1);
-            $value_state: nth($css_state, 2);
-            &-#{$key_state} {
-              &.color-#{$key}-#{$key_state}:#{$value_state}, & .color-#{$key}-#{$key_state}:#{$value_state} {
-                #{$value-property}: $color !important;
+    @function get-property($lookup-key){
+      @return map-get-key($properties, $lookup-key);
+    }
+
+    @function get-state($lookup-key){
+      @return map-get-key($state, $lookup-key);
+    }
+
+    @mixin make-color-variants-styles(
+      $color-name,
+      $color,
+      $css-properties-variants,
+      $css-states-variants,
+      $options
+    ) {
+      @each $css-property in $css-properties-variants {
+        $key: nth($css-property, 1);
+        $value-property: get-property($key);
+        @if $options == null or map_get($options, normal) == 1 {
+          &-#{$color-name}-#{$key} {
+            #{$value-property}: $color !important;
+          }
+          @each $css-state in $css-states-variants {
+            $key-state: nth($css-state, 1);
+            $value-state: get-state($key-state);
+            &-#{$color-name}-#{$key}-#{$key-state}:#{$value-state} {
+              #{$value-property}: $color !important;
+            }
+          }
+        }
+        @if $options != null and map_get($options, use) == 1 {
+          &-use-#{$color-name}-#{$key} {
+            &.color-#{$key}, & .color-#{$key} {
+              #{$value-property}: $color !important;
+            }
+
+            @if ($css-states-variants) {
+              @each $css_state in $css-states-variants {
+                $key_state: nth($css_state, 1);
+                $value-state: get-state($key_state);
+                &-#{$key_state} {
+                  &.color-#{$key}-#{$key_state}:#{$value_state}, & .color-#{$key}-#{$key_state}:#{$value_state} {
+                    #{$value-property}: $color !important;
+                  }
+                }
               }
             }
           }
         }
       }
     }
-  }
-}
-@mixin make-color-variants(
-  $color,
-  $color-name,
-  $css-properties-variants,
-  $css-states-variants,
-  $lighten-variants,
-  $darken-variants,
-  $options
-) {
-  @include make-color-variants-styles(#{$color-name}, $color, $css-properties-variants, $css-states-variants, $options);
+    @mixin make-color-variants(
+      $color,
+      $color-name,
+      $css-properties-variants,
+      $css-states-variants,
+      $lighten-variants,
+      $darken-variants,
+      $options
+    ) {
+      @include make-color-variants-styles(#{$color-name}, $color, $css-properties-variants, $css-states-variants, $options);
 
-  @if ($lighten-variants) {
-    @each $variant in $lighten-variants {
-      $key: nth($variant, 1);
-      $value: nth($variant, 2);
-      $lighten_color: lighten($color, $value);
-      @include make-color-variants-styles(#{$color-name}-#{$key}, $lighten_color, $css-properties-variants, $css-states-variants, $options);
+      @if ($lighten-variants) {
+        @each $variant in $lighten-variants {
+          $key: nth($variant, 1);
+          $value: nth($variant, 2);
+          $lighten_color: lighten($color, $value);
+          @include make-color-variants-styles(#{$color-name}-#{$key}, $lighten_color, $css-properties-variants, $css-states-variants, $options);
+        }
+      }
+      @if ($darken-variants) {
+        @each $variant in $darken-variants {
+          $key: nth($variant, 1);
+          $value: nth($variant, 2);
+          $darken_color: darken($color, $value);
+          @include make-color-variants-styles(#{$color-name}-#{$key}, $darken_color, $css-properties-variants, $css-states-variants, $options);
+        }
+      }
     }
-  }
-  @if ($darken-variants) {
-    @each $variant in $darken-variants {
-      $key: nth($variant, 1);
-      $value: nth($variant, 2);
-      $darken_color: darken($color, $value);
-      @include make-color-variants-styles(#{$color-name}-#{$key}, $darken_color, $css-properties-variants, $css-states-variants, $options);
+
+    @if (type-of($properties-override) == 'map'){
+      $properties: $properties-override;
+    }
+
+    @if (type-of($states-override) == 'map'){
+      $state: $states-override;
+    }
+
+    @each $color-definition in $color-definitions {
+      @include make-color-variants(
+        map_get($color-definition, color),
+        map_get($color-definition, name),
+        map_get($color-definition, css_properties),
+        map_get($color-definition, css_states),
+        map_get($color-definition, lighten),
+        map_get($color-definition, darken),
+        map_get($color-definition, options)
+      )
     }
   }
 }
-@mixin make-color-styles($color-definitions) {
-  @each $color-definition in $color-definitions {
-    @include make-color-variants(
-      map_get($color-definition, color),
-      map_get($color-definition, name),
-      map_get($color-definition, css_properties),
-      map_get($color-definition, css_states),
-      map_get($color-definition, lighten),
-      map_get($color-definition, darken),
-      map_get($color-definition, options)
-    )
-  }
-}
+
 @function get-color($color-definitions, $name, $variant: null) {
   @each $color-definition in $color-definitions {
     @if $name == map-get($color-definition, name) {
