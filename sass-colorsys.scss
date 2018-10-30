@@ -1,122 +1,207 @@
-@mixin make-color-styles($color-definitions, $properties-override: null, $states-override: null) {
-  .color {
+/// Check if class name is in allowed class list
+@function _scs_check_allowed_wrapped_class_list($color-name, $class-name, $allowed-class-list){
+  @if map_get($allowed-class-list, $class-name) == null{
+    @error "Undefined key: `#{$class-name}` for color `#{$color-name}` possible values `#{$allowed-class-list}`"
+  }
+  @return null;
+}
 
-    $properties: (cl: color, bg: background, bdc: border-color, fl: fill);
-    $state: (ho: hover);
-
-    @function map-get-key($lookup-map, $lookup-key){
-      @each $item in $lookup-map {
-        $key: nth($item, 1);
-        $value: nth($item, 2);
-        @if ($key == $lookup-key){
-          @return $value;
+/// Build a list of allowed values for wrapper mode
+@function _scs_build_allowed_wrapped_class_list(
+  $color-name,
+  $color-variant,
+  $color,
+  $css-properties-variants,
+  $css-states-variants,
+  $options,
+  $properties,
+  $state
+){
+  $result: ();
+  @each $css-property in $css-properties-variants {
+    $key: nth($css-property, 1);
+    $value-property: map-get($properties, $key);
+    @if $options != null and index($options, wrap) != null {
+      $selector-base: null;
+      @if $color-variant != null {
+        $selector-base: #{$selector-base}#{$color-variant}-;
+      }
+      $selector-base: #{$selector-base}#{$key};
+      $append: (color-#{$selector-base}: true);
+      $result: map_merge($result, $append);
+      @if ($css-states-variants) {
+        @each $css_state in $css-states-variants {
+          $key_state: nth($css_state, 1);
+          $value-state: map-get($state, $key-state);
+          $selector-variant-base: #{$selector-base}-#{$key_state};
+          $append: (color-#{$selector-variant-base}:true);
+          $result: map_merge($append ,$result);
         }
       }
     }
+  }
+  @return $result;
+}
 
-    @function get-property($lookup-key){
-      @return map-get-key($properties, $lookup-key);
-    }
+/// Build wrapped style for color variant
+@mixin _scs_build_color_variants_wrapped_styles(
+  $color-name,
+  $color-variant,
+  $color,
+  $css-properties-variants,
+  $css-states-variants,
+  $options,
+  $properties,
+  $state,
+  $allow
+) {
+  @each $css-property in $css-properties-variants {
+    $key: nth($css-property, 1);
+    $value-property: map-get($properties, $key);
+    @if $options != null and index($options, wrap) != null {
+      &-wrapper-#{$color-name} {
+        $selector-base: null;
+        @if $color-variant != null {
+          $selector-base: #{$selector-base}#{$color-variant}-;
+        }
+        $selector-base: #{$selector-base}#{$key};
 
-    @function get-state($lookup-key){
-      @return map-get-key($state, $lookup-key);
-    }
-
-    @mixin make-color-variants-styles(
-      $color-name,
-      $color,
-      $css-properties-variants,
-      $css-states-variants,
-      $options
-    ) {
-      @each $css-property in $css-properties-variants {
-        $key: nth($css-property, 1);
-        $value-property: get-property($key);
-        @if $options == null or map_get($options, normal) == 1 {
-          &-#{$color-name}-#{$key} {
+        @if $allow == null or index($allow, color-#{$selector-base}) != null{
+          &.color-#{$selector-base}, & .color-#{$selector-base} {
             #{$value-property}: $color !important;
           }
-          @each $css-state in $css-states-variants {
-            $key-state: nth($css-state, 1);
-            $value-state: get-state($key-state);
-            &-#{$color-name}-#{$key}-#{$key-state}:#{$value-state} {
-              #{$value-property}: $color !important;
-            }
-          }
         }
-        @if $options != null and map_get($options, use) == 1 {
-          &-use-#{$color-name}-#{$key} {
-            &.color-#{$key}, & .color-#{$key} {
-              #{$value-property}: $color !important;
-            }
-
-            @if ($css-states-variants) {
-              @each $css_state in $css-states-variants {
-                $key_state: nth($css_state, 1);
-                $value-state: get-state($key_state);
-                &-#{$key_state} {
-                  &.color-#{$key}-#{$key_state}:#{$value_state}, & .color-#{$key}-#{$key_state}:#{$value_state} {
-                    #{$value-property}: $color !important;
-                  }
-                }
+        @if ($css-states-variants) {
+          @each $css_state in $css-states-variants {
+            $key_state: nth($css_state, 1);
+            $value-state: map-get($state, $key-state);
+            $selector-variant-base: #{$selector-base}-#{$key_state};
+            @if $allow == null or index($allow, color-#{$selector-variant-base}) != null {
+              &.color-#{$selector-variant-base}:#{$value_state}, & .color-#{$selector-variant-base}:#{$value_state} {
+                #{$value-property}: $color !important;
               }
             }
           }
         }
       }
     }
-    @mixin make-color-variants(
-      $color,
-      $color-name,
-      $css-properties-variants,
-      $css-states-variants,
-      $lighten-variants,
-      $darken-variants,
-      $options
-    ) {
-      @include make-color-variants-styles(#{$color-name}, $color, $css-properties-variants, $css-states-variants, $options);
+  }
+}
 
-      @if ($lighten-variants) {
-        @each $variant in $lighten-variants {
-          $key: nth($variant, 1);
-          $value: nth($variant, 2);
-          $lighten_color: lighten($color, $value);
-          @include make-color-variants-styles(#{$color-name}-#{$key}, $lighten_color, $css-properties-variants, $css-states-variants, $options);
+
+@mixin _scs_build_color_variants_styles(
+  $color-name,
+  $color-variant,
+  $color,
+  $css-properties-variants,
+  $css-states-variants,
+  $options,
+  $properties,
+
+  $state
+
+) {
+  $color-full-name: $color-name;
+  @if $color-variant != null {
+    $color-full-name: #{$color-full-name}-#{$color-variant};
+  }
+  @each $css-property in $css-properties-variants {
+    $key: nth($css-property, 1);
+    $value-property: map-get($properties, $key);
+    @if $options == null or index($options, normal) != null {
+      &-#{$color-full-name}-#{$key} {
+        #{$value-property}: $color !important;
+      }
+      @each $css-state in $css-states-variants {
+        $key-state: nth($css-state, 1);
+        $value-state: map-get($state, $key-state);
+        &-#{$color-full-name}-#{$key}-#{$key-state}:#{$value-state} {
+          #{$value-property}: $color !important;
         }
       }
-      @if ($darken-variants) {
-        @each $variant in $darken-variants {
-          $key: nth($variant, 1);
-          $value: nth($variant, 2);
-          $darken_color: darken($color, $value);
-          @include make-color-variants-styles(#{$color-name}-#{$key}, $darken_color, $css-properties-variants, $css-states-variants, $options);
-        }
+    }
+  }
+}
+@mixin _scs_make_color_variants(
+  $color-definitions,
+  $properties,
+  $state
+) {
+  $allowed-wrapped-class-list:();
+  @each $color-definition in $color-definitions {
+    $color: map_get($color-definition, color);
+    $color-name: map_get($color-definition, name);
+    $css-properties-variants: map_get($color-definition, css_properties);
+    $css-states-variants: map_get($color-definition, css_states);
+    $lighten-variants: map_get($color-definition, lighten);
+    $darken-variants: map_get($color-definition, darken);
+    $options: map_get($color-definition, options);
+    $wrap-allow: map_get($color-definition, wrap-allow);
+    @include _scs_build_color_variants_styles($color-name, null, $color, $css-properties-variants, $css-states-variants, $options, $properties, $state);
+    @include _scs_build_color_variants_wrapped_styles($color-name, null, $color, $css-properties-variants, $css-states-variants, $options, $properties, $state, $wrap-allow);
+    $wrappers-target-name: map_merge($allowed-wrapped-class-list, _scs_build_allowed_wrapped_class_list($color-name, null, $color, $css-properties-variants, $css-states-variants, $options, $properties, $state));
+    @if ($lighten-variants) {
+      @each $variant in $lighten-variants {
+        $key: nth($variant, 1);
+        $value: nth($variant, 2);
+        $lighten_color: lighten($color, $value);
+        @include _scs_build_color_variants_styles($color-name, $key, $lighten_color, $css-properties-variants, $css-states-variants, $options, $properties, $state);
+        @include _scs_build_color_variants_wrapped_styles($color-name, $key, $lighten_color, $css-properties-variants, $css-states-variants, $options, $properties, $state, $wrap-allow);
+        $wrappers-target-name: map_merge($wrappers-target-name, _scs_build_allowed_wrapped_class_list($color-name, $key, $lighten_color, $css-properties-variants, $css-states-variants, $options, $properties, $state));
+
+      }
+    }
+    @if ($darken-variants) {
+      @each $variant in $darken-variants {
+        $key: nth($variant, 1);
+        $value: nth($variant, 2);
+        $darken_color: darken($color, $value);
+        @include _scs_build_color_variants_styles($color-name, $key, $darken_color, $css-properties-variants, $css-states-variants, $options, $properties, $state);
+        @include _scs_build_color_variants_wrapped_styles($color-name, $key, $darken_color, $css-properties-variants, $css-states-variants, $options, $properties, $state, $wrap-allow);
+        $wrappers-target-name: map_merge($wrappers-target-name, _scs_build_allowed_wrapped_class_list($color-name, $key, $darken_color, $css-properties-variants, $css-states-variants, $options, $properties, $state));
       }
     }
 
-    @if (type-of($properties-override) == 'map'){
-      $properties: $properties-override;
-    }
+    // Check wrap-allow property
 
-    @if (type-of($states-override) == 'map'){
-      $state: $states-override;
-    }
-
-    @each $color-definition in $color-definitions {
-      @include make-color-variants(
-        map_get($color-definition, color),
-        map_get($color-definition, name),
-        map_get($color-definition, css_properties),
-        map_get($color-definition, css_states),
-        map_get($color-definition, lighten),
-        map_get($color-definition, darken),
-        map_get($color-definition, options)
-      )
+    @if $wrap-allow {
+      @each $wrap-allow-item in $wrap-allow {
+        $result: _scs_check_allowed_wrapped_class_list($color-name, $wrap-allow-item, $wrappers-target-name);
+      }
     }
   }
 }
 
-@function get-color($color-definitions, $name, $variant: null) {
+@mixin scs_build_color(
+  $color-definitions,
+  $properties-override: null,
+   $states-override: null
+) {
+  .color {
+    $properties: (cl: color, bg: background, bdc: border-color, fl: fill);
+    $state: (ho: hover);
+
+    @if (type-of($properties-override) == 'map') {
+      $properties: $properties-override;
+    }
+
+    @if (type-of($states-override) == 'map') {
+      $state: $states-override;
+    }
+
+    @include _scs_make_color_variants(
+                    $color-definitions,
+                    $properties,
+                    $state
+    )
+  }
+}
+
+@function scs_get_color(
+  $color-definitions,
+  $name,
+  $variant: null
+) {
   @each $color-definition in $color-definitions {
     @if $name == map-get($color-definition, name) {
 
