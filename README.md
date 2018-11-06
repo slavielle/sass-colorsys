@@ -3,7 +3,9 @@
 ## Usage
 
 ### Install package
+```
 npm i sass-colorsys
+```
 
 ### Import in sass stylesheet
 
@@ -29,8 +31,19 @@ $color-set: (
   ...
 );
 ```
-### build color styles
+### Build color styles
 ```sass
 @include scs_build_colors($color-set);
 
 ```
+
+### Use declarative classes to apply colors
+```html
+<btn class="btn color-c1-bg color-c1-d10-bg-ho">test</btn>
+```
+Class syntax overview :
+
+* __color-c1-bg__ : color c1 applied to background (bg)
+* __color-c1-d10-bg-ho__ : color c1 variand darken 10% (d10) applied to background (bg) on hover (ho)
+
+## More into documentation (comming soon)
