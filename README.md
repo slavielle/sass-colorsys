@@ -2,29 +2,35 @@
 
 ## Usage
 
-### Import
+### Install package
+npm i sass-colorsys
+
+### Import in sass stylesheet
 
 ```sass
 @import "~sass-colorsys/sass-colorsys"
 ```
 
-### Define your color set
+### Define your sass color set
 ```sass
+$color-variants: (
+  lighten: (l10: 10%, l30: 30%),
+  darken: (d10: 10%, d30: 30%)
+);
+
 $color-set: (
   (
     name: c1,
     color: #71cbc6,
-    css_properties: (cl: color, bg: background, bdc: border-color, fl: fill),
-    css_states: (ho: hover),
-    darken: (d10: 10%),
-    lighten: (l10: 10%),
-    options: (normal:1)
+    darken: map-get($color-variants, darken),
+    lighten: map-get($color-variants, lighten),
+    rule-types: (normal)
   ),
   ...
 );
 ```
-### Make
+### build color styles
 ```sass
-@include make-color-styles($color-set);
+@include scs_build_colors($color-set);
 
 ```
