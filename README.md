@@ -10,7 +10,7 @@ npm i sass-colorsys
 ### Import in sass stylesheet
 
 ```sass
-@import "~sass-colorsys/sass-colorsys"
+@import "../node_modules/sass-colorsys/sass-colorsys.scss";
 ```
 
 ### Define your sass color set
@@ -46,4 +46,5 @@ Class syntax overview :
 * __color-c1-bg__ : color c1 applied to background (bg)
 * __color-c1-d10-bg-ho__ : color c1 variand darken 10% (d10) applied to background (bg) on hover (ho)
 
-## More into documentation (comming soon)
+## More ?
+Yes, It's a short overview ... I'm currently working on a more comprehensive documentation.
