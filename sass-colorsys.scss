@@ -106,6 +106,7 @@
 /// @param $properties-repo         Properties repository with alias as key and real css property as value
 /// @param $states-repo             State repository with alias as key and real css state as value
 /// @param $allowed-class-names
+/// @param $nested-level-list
 @mixin _scs_build_color_variants_wrapped_rules(
   $color-name,
   $color-variant,
@@ -115,23 +116,38 @@
   $rule-types,
   $properties-repo,
   $state-repo,
-  $allowed-class-names
+  $allowed-class-names,
+  $nested-level-list
 ) {
-  @each $css-property in $css-properties-variants {
-    $key: nth($css-property, 1);
-    $value-property: map-get($properties-repo, $key);
-    @if $rule-types != null and index($rule-types, wrap) != null {
-      &-wrapper-#{$color-name} {
-        $selector-base: null;
-        @if $color-variant != null {
-          $selector-base: #{$selector-base}#{$color-variant}-;
-        }
-        $selector-base: #{$selector-base}#{$key};
 
+  @each $css-property in $css-properties-variants {
+
+    $class-prefix: '';
+    $class-prefix-list: ('');
+
+    @if ($nested-level-list != null){
+      @for $i from 0 through max($nested-level-list...){
+        $class-prefix: "#{$class-prefix} .color-wrapper ";
+        @if(index($nested-level-list, $i + 1) != null ){
+          $class-prefix-list: append($class-prefix-list, $class-prefix);
+        }
+      }
+    }
+
+    $full-selector: '';
+    $key-property: nth($css-property, 1);
+    $value-property: map-get($properties-repo, $key-property);
+    @if $rule-types != null and index($rule-types, wrap) != null {
+
+      $selector-base: null;
+      @if $color-variant != null {
+        $selector-base: #{$selector-base}#{$color-variant}-;
+      }
+      $selector-base: #{$selector-base}#{$key-property};
+
+      @each $class-prefixes in $class-prefix-list {
         @if $allowed-class-names == null or index($allowed-class-names, $selector-base) != null{
-          &.color-#{$selector-base}, & .color-#{$selector-base} {
-            #{$value-property}: $color !important;
-          }
+          $full-selector: $full-selector + ",#{$class-prefixes}.color-wrapper.color-#{$color-name}.color-#{$selector-base}, #{$class-prefixes}.color-wrapper.color-#{$color-name} .color-#{$selector-base}"
         }
         @if ($css-states-variants) {
           @each $css_state in $css-states-variants {
@@ -139,11 +155,15 @@
             $value-state: map-get($state-repo, $key-state);
             $selector-variant-base: #{$selector-base}-#{$key_state};
             @if $allowed-class-names == null or index($allowed-class-names, $selector-variant-base) != null {
-              &.color-#{$selector-variant-base}:#{$value_state}, & .color-#{$selector-variant-base}:#{$value_state} {
-                #{$value-property}: $color !important;
-              }
+              $full-selector: $full-selector + ",#{$class-prefixes}.color-wrapper.color-#{$color-name}.color-#{$selector-variant-base}:#{$value_state}, #{$class-prefixes}.color-wrapper.color-#{$color-name} .color-#{$selector-variant-base}:#{$value_state}"
             }
           }
+        }
+      }
+      $full-selector: str-slice($full-selector, 2);
+      @if $full-selector != '' {
+        #{$full-selector} {
+          #{$value-property}: $color !important;
         }
       }
     }
@@ -181,7 +201,7 @@
     $value-property: map-get($properties-repo, $key);
     @if $rule-types == null or index($rule-types, normal) != null {
       @if $allowed-class-names == null or index($allowed-class-names, #{$color-variant-part}#{$key}) != null {
-        &-#{$color-full-name}-#{$key} {
+        .color-#{$color-full-name}-#{$key} {
           #{$value-property}: $color !important;
         }
       }
@@ -189,7 +209,7 @@
         $key-state: nth($css-state, 1);
         $value-state: map-get($states-repo, $key-state);
         @if $allowed-class-names == null or index($allowed-class-names, #{$color-variant-part}#{$key}-#{$key-state}) != null {
-          &-#{$color-full-name}-#{$key}-#{$key-state}:#{$value-state} {
+          .color-#{$color-full-name}-#{$key}-#{$key-state}:#{$value-state} {
             #{$value-property}: $color !important;
           }
         }
@@ -217,6 +237,7 @@
     $rule-types: map_get($definition, rule-types);
     $wrap-allow: map_get($definition, wrap-allow);
     $normal-allow: map_get($definition, normal-allow);
+    $wrap-nested-level: map_get($definition, wrap-nested-level);
     $variant-type-list: (lighten, darken);
 
     $css-properties-variants: map_get($definition, css_properties);
@@ -230,7 +251,7 @@
 
     // Build color style and wrapper styles
     @include _scs_build_color_variants_normal_rules($color-name, null, $color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $normal-allow);
-    @include _scs_build_color_variants_wrapped_rules($color-name, null, $color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $wrap-allow);
+    @include _scs_build_color_variants_wrapped_rules($color-name, null, $color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $wrap-allow, $wrap-nested-level);
     $wrappers-target-name: _scs_build_allowed_wrapped_class_list($color-name, null, $color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state);
     $normal-target-name: _scs_build_allowed_normal_class_list($color-name, null, $color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state);
 
@@ -249,7 +270,7 @@
           }
           @if $computed-color {
             @include _scs_build_color_variants_normal_rules($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $normal-allow);
-            @include _scs_build_color_variants_wrapped_rules($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $wrap-allow);
+            @include _scs_build_color_variants_wrapped_rules($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $wrap-allow, $wrap-nested-level);
             $wrappers-target-name: map_merge($wrappers-target-name, _scs_build_allowed_wrapped_class_list($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state));
             $normal-target-name: map_merge($normal-target-name, _scs_build_allowed_normal_class_list($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state));
           }
@@ -281,25 +302,25 @@
   $definitions,
   $settings: ()
 ) {
-  .color {
 
-    // Default states and properties lists
-    $properties: (cl: color, bg: background, bdc: border-color, fl: fill);
-    $state: (ho: hover, ac: active, fo: focus);
 
-    // Override states and properties lists
-    $properties-override: map_get($settings, $properties) ;
-    @if (type-of($properties-override) == 'map') {
-      $properties: $properties-override;
-    }
-    $states-override: map_get($settings, states) ;
-    @if (type-of($states-override) == 'map') {
-      $state: $states-override;
-    }
+  // Default states and properties lists
+  $properties: (cl: color, bg: background, bc: border-color, fl: fill);
+  $state: (ho: hover, ac: active, fo: focus);
 
-    // Build color variants
-    @include _scs_build_color_and_variants($definitions, $properties, $state);
+  // Override states and properties lists
+  $properties-override: map_get($settings, $properties) ;
+  @if (type-of($properties-override) == 'map') {
+    $properties: $properties-override;
   }
+  $states-override: map_get($settings, states) ;
+  @if (type-of($states-override) == 'map') {
+    $state: $states-override;
+  }
+
+  // Build color variants
+  @include _scs_build_color_and_variants($definitions, $properties, $state);
+
 }
 
 /// Get color from color definitions map.
