@@ -1,6 +1,6 @@
 {
   "name": "sass-colorsys",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "sass color system",
   "main": "sass-colorsys.scss",
   "author": "Sylvain Lavielle <sylvain.lavielle@netelios.fr>",

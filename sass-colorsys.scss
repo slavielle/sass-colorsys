@@ -1,4 +1,11 @@
+////
+/// Sass color system - Color is just painting
+/// @author Sylvain LAVIELLE
+////
+
+
 /// Check if class name is in allowed class list
+/// @access private
 @function _scs_check_in_allowed_class_list(
   $color-name,
   $class-full-name,
@@ -12,6 +19,7 @@
 }
 
 /// Build a list of all allowed class name (wrapper mode)for the given color.
+/// @access private
 /// @param $color-name              Color name as mentioned in the color-set
 /// @param $color-variant           Variant name as mentioned in the lighten / darken properties in the color-set
 /// @param $color                   Color value
@@ -53,6 +61,7 @@
 }
 
 /// Build a list of all allowed class name (wrapper mode)for the given color.
+/// @access private
 /// @param $color-name              Color name as mentioned in the color-set
 /// @param $color-variant           Variant name as mentioned in the lighten / darken properties in the color-set
 /// @param $color                   Color value
@@ -97,6 +106,7 @@
 }
 
 /// Build wrapped style for color variant
+/// @access private
 /// @param $color-name              Color name as mentioned in the color-set
 /// @param $color-variant           Variant name as mentioned in the lighten / darken properties in the color-set
 /// @param $color                   Color value
@@ -106,7 +116,6 @@
 /// @param $properties-repo         Properties repository with alias as key and real css property as value
 /// @param $states-repo             State repository with alias as key and real css state as value
 /// @param $allowed-class-names
-/// @param $nested-level-list
 @mixin _scs_build_color_variants_wrapped_rules(
   $color-name,
   $color-variant,
@@ -127,7 +136,7 @@
 
     @if ($nested-level-list != null){
       @for $i from 0 through max($nested-level-list...){
-        $class-prefix: "#{$class-prefix} .color-wrapper ";
+        $class-prefix: "#{$class-prefix} .paint-wrapper ";
         @if(index($nested-level-list, $i + 1) != null ){
           $class-prefix-list: append($class-prefix-list, $class-prefix);
         }
@@ -147,7 +156,7 @@
 
       @each $class-prefixes in $class-prefix-list {
         @if $allowed-class-names == null or index($allowed-class-names, $selector-base) != null{
-          $full-selector: $full-selector + ",#{$class-prefixes}.color-wrapper.color-#{$color-name}.color-#{$selector-base}, #{$class-prefixes}.color-wrapper.color-#{$color-name} .color-#{$selector-base}"
+          $full-selector: $full-selector + ",#{$class-prefixes}.paint-wrapper.paint-#{$color-name}.paint-#{$selector-base}, #{$class-prefixes}.paint-wrapper.paint-#{$color-name} .paint-#{$selector-base}"
         }
         @if ($css-states-variants) {
           @each $css_state in $css-states-variants {
@@ -155,7 +164,7 @@
             $value-state: map-get($state-repo, $key-state);
             $selector-variant-base: #{$selector-base}-#{$key_state};
             @if $allowed-class-names == null or index($allowed-class-names, $selector-variant-base) != null {
-              $full-selector: $full-selector + ",#{$class-prefixes}.color-wrapper.color-#{$color-name}.color-#{$selector-variant-base}:#{$value_state}, #{$class-prefixes}.color-wrapper.color-#{$color-name} .color-#{$selector-variant-base}:#{$value_state}"
+              $full-selector: $full-selector + ",#{$class-prefixes}.paint-wrapper.paint-#{$color-name}.paint-#{$selector-variant-base}:#{$value_state}, #{$class-prefixes}.paint-wrapper.paint-#{$color-name} .paint-#{$selector-variant-base}:#{$value_state}"
             }
           }
         }
@@ -171,6 +180,7 @@
 }
 
 /// Build style for color variant
+/// @access private
 /// @param $color-name              Color name as mentioned in the color-set
 /// @param $color-variant           Variant name as mentioned in the lighten / darken properties in the color-set
 /// @param $$color                  Color value
@@ -201,7 +211,7 @@
     $value-property: map-get($properties-repo, $key);
     @if $rule-types == null or index($rule-types, normal) != null {
       @if $allowed-class-names == null or index($allowed-class-names, #{$color-variant-part}#{$key}) != null {
-        .color-#{$color-full-name}-#{$key} {
+        .paint-#{$color-full-name}-#{$key} {
           #{$value-property}: $color !important;
         }
       }
@@ -209,7 +219,7 @@
         $key-state: nth($css-state, 1);
         $value-state: map-get($states-repo, $key-state);
         @if $allowed-class-names == null or index($allowed-class-names, #{$color-variant-part}#{$key}-#{$key-state}) != null {
-          .color-#{$color-full-name}-#{$key}-#{$key-state}:#{$value-state} {
+          .paint-#{$color-full-name}-#{$key}-#{$key-state}:#{$value-state} {
             #{$value-property}: $color !important;
           }
         }
@@ -219,6 +229,7 @@
 }
 
 /// Build style for color variants
+/// @access private
 /// @param $definitions Color definitions
 /// @param $properties  Map defining color properties
 /// @param $state       Map defining element states
@@ -229,16 +240,16 @@
 ) {
   //$allowed-wrapped-class-list:();
   //$allowed-normal-class-list:();
-  @each $definition in $definitions {
+  @each $color-name, $definition in $definitions {
 
     // Init vars
     $color: map_get($definition, color);
-    $color-name: map_get($definition, name);
+    //$color-name: map_get($definition, name);
     $rule-types: map_get($definition, rule-types);
     $wrap-allow: map_get($definition, wrap-allow);
     $normal-allow: map_get($definition, normal-allow);
     $wrap-nested-level: map_get($definition, wrap-nested-level);
-    $variant-type-list: (lighten, darken);
+    $variants: map_get($definition, variants);
 
     $css-properties-variants: map_get($definition, css_properties);
     @if $css-properties-variants == null{
@@ -256,24 +267,22 @@
     $normal-target-name: _scs_build_allowed_normal_class_list($color-name, null, $color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state);
 
     // Build color variant style and wrapper styles
-    @each $variant-type in $variant-type-list {
-      @if (map_get($definition, $variant-type)) {
-        @each $variant in map_get($definition, $variant-type) {
-          $key: nth($variant, 1);
-          $value: nth($variant, 2);
-          $computed-color: null;
-          @if $variant-type == lighten {
-            $computed-color: lighten($color, $value);
-          }
-          @else if $variant-type == darken {
-            $computed-color: darken($color, $value);
-          }
-          @if $computed-color {
-            @include _scs_build_color_variants_normal_rules($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $normal-allow);
-            @include _scs_build_color_variants_wrapped_rules($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $wrap-allow, $wrap-nested-level);
-            $wrappers-target-name: map_merge($wrappers-target-name, _scs_build_allowed_wrapped_class_list($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state));
-            $normal-target-name: map_merge($normal-target-name, _scs_build_allowed_normal_class_list($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state));
-          }
+    @if $variants {
+      @each $key, $variant in $variants {
+        $value: map-get($variant, 'value');
+        $variant-type: map-get($variant, 'type');
+        $computed-color: null;
+        @if $variant-type == lighten {
+          $computed-color: lighten($color, $value);
+        }
+        @else if $variant-type == darken {
+          $computed-color: darken($color, $value);
+        }
+        @if $computed-color {
+          @include _scs_build_color_variants_normal_rules($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $normal-allow);
+          @include _scs_build_color_variants_wrapped_rules($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state, $wrap-allow, $wrap-nested-level);
+          $wrappers-target-name: map_merge($wrappers-target-name, _scs_build_allowed_wrapped_class_list($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state));
+          $normal-target-name: map_merge($normal-target-name, _scs_build_allowed_normal_class_list($color-name, $key, $computed-color, $css-properties-variants, $css-states-variants, $rule-types, $properties, $state));
         }
       }
     }
@@ -296,10 +305,12 @@
 }
 
 /// Build color rules.
+/// @access public
 /// @param $definitions Color definitions map
 /// @param $settings    Settings
-@mixin scs_build_colors(
-  $definitions,
+@mixin scs_build_colors_styles(
+  $color-definitions,
+  $style-definitions,
   $settings: ()
 ) {
 
@@ -318,12 +329,21 @@
     $state: $states-override;
   }
 
+  // Merge color definitions and style definitions
+  $definitions: ();
+  @each $color-name, $color-definition in $color-definitions {
+    @if map_get($style-definitions, $color-name){
+      $definitions: map_merge($definitions, ($color-name: map_merge($color-definition, map_get($style-definitions, $color-name))))
+    }
+  }
+
   // Build color variants
   @include _scs_build_color_and_variants($definitions, $properties, $state);
 
 }
 
 /// Get color from color definitions map.
+/// @access public
 /// @param $definitions Color definitions
 /// @param $name        Color name to look for inside the definitions
 /// @param $variant     Color variant name to look for inside the definitions
@@ -334,47 +354,40 @@
 ) {
 
   $definitions: $color-set;
-  $name: $param-1;
+  $lookup-name: $param-1;
   $variant: $param-2;
 
   @if type-of($param-1) == 'map' {
     $definitions: $param-1;
-    $name: $param-2;
+    $lookup-name: $param-2;
     $variant: $param-3;
   }
 
-  @each $definition in $definitions {
-    @if $name == map-get($definition, name) {
+  @each $name, $definition in $definitions {
+    @if $name == $lookup-name {
 
       @if ($variant == null) {
         $color: map-get($definition, color);
         @if ($color) {
-          @return map-get($definition, color);
+          @return $color;
         }
       } @else {
-        $lighten_map: map-get($definition, lighten);
-        $darken_map: map-get($definition, darken);
-        @if ($lighten_map) {
-          @each $lighten in $lighten_map {
-            $key: nth($lighten, 1);
-            $value: nth($lighten, 2);
-            @if ($key == $variant) {
+        $variants: map-get($definition, variants);
+        @if $variants {
+          @each $variant-name, $variant-definition in $variants{
+            $value: map-get($variant-definition, value);
+            $type: map-get($variant-definition, type);
+            @if $type == lighten{
               @return lighten(map-get($definition, color), $value);
             }
-          }
-        }
-        @if ($darken_map) {
-          @each $darken in $darken_map {
-            $key: nth($darken, 1);
-            $value: nth($darken, 2);
-            @if ($key == $variant) {
+            @if $type == darken{
               @return darken(map-get($definition, color), $value);
             }
           }
         }
-        @error "Undefined color: `#{$name}` variant: `#{$variant}`";
+        @error "Undefined color: `#{$lookup-name}` variant: `#{$variant}`";
       }
     }
   }
-  @error "Undefined color: `#{$name}`";
+  @error "Undefined color: `#{$lookup-name}`";
 }
