@@ -345,38 +345,49 @@
 /// Get color from color definitions map.
 /// @access public
 /// @param $definitions Color definitions
-/// @param $name        Color name to look for inside the definitions
-/// @param $variant     Color variant name to look for inside the definitions
+/// @param $param-2        Color name to look for inside the definitions
+/// @param $param-3     Color variant name to look for inside the definitions
 @function scs_get_color(
-  $param-1,
+  $lookup-name,
   $param-2: null,
   $param-3: null
 ) {
-
   $definitions: $color-set;
-  $lookup-name: $param-1;
-  $variant: $param-2;
+  $variant-name: null;
 
-  @if type-of($param-1) == 'map' {
-    $definitions: $param-1;
-    $lookup-name: $param-2;
-    $variant: $param-3;
+  @if $param-2 != null {
+    @if type_of($param-2) == "map" {
+      $definitions: $param-2;
+    }
+    @else {
+      $variant-name: $param-2;
+      @if $param-3 != null {
+        @error "Unexpected parameter";
+      }
+    }
+  }
+
+  @if $param-3 != null {
+    $variant-name: $param-3;
   }
 
   @each $name, $definition in $definitions {
     @if $name == $lookup-name {
 
-      @if ($variant == null) {
+      @if ($variant-name == null) {
         $color: map-get($definition, color);
         @if ($color) {
           @return $color;
         }
       } @else {
         $variants: map-get($definition, variants);
+
         @if $variants {
-          @each $variant-name, $variant-definition in $variants{
-            $value: map-get($variant-definition, value);
-            $type: map-get($variant-definition, type);
+          $variant: map_get($variants, $variant-name);
+          @if $variant{
+
+            $value: map-get($variant, value);
+            $type: map-get($variant, type);
             @if $type == lighten{
               @return lighten(map-get($definition, color), $value);
             }
@@ -385,7 +396,7 @@
             }
           }
         }
-        @error "Undefined color: `#{$lookup-name}` variant: `#{$variant}`";
+        @error "Undefined color: `#{$lookup-name}` variant: `#{$variant-name}`";
       }
     }
   }
